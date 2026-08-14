@@ -822,6 +822,9 @@ console.log(
     paradasPorId:
         paradasPorId,
 
+    rutasPorId:
+        rutasPorId,
+
     viajesPorId:
         viajesPorId,
 

@@ -2,11 +2,18 @@
 // LECTOR GTFS - METROVALENCIA RADAR
 // ============================================
 
+
+// ============================================
+// CARGAR ARCHIVO GTFS
+// ============================================
+
 async function cargarArchivoGTFS(nombre) {
 
-    const respuesta = await fetch("gtfs/" + nombre);
+    const respuesta =
+        await fetch("gtfs/" + nombre);
 
     if (!respuesta.ok) {
+
         throw new Error(
             "No se pudo cargar " +
             nombre +
@@ -14,6 +21,7 @@ async function cargarArchivoGTFS(nombre) {
             respuesta.status +
             ")"
         );
+
     }
 
     return await respuesta.text();
@@ -26,85 +34,150 @@ async function cargarArchivoGTFS(nombre) {
 
 function analizarCSV(texto) {
 
-    const lineas = texto.trim().split(/\r?\n/);
+    const lineas =
+        texto.trim().split(/\r?\n/);
 
-    const cabeceras = lineas[0].split(",");
+    const cabeceras =
+        lineas[0].split(",");
 
     const resultado = [];
 
-    for (let i = 1; i < lineas.length; i++) {
 
-        const columnas = lineas[i].split(",");
+    for (
+        let i = 1;
+        i < lineas.length;
+        i++
+    ) {
+
+        const columnas =
+            lineas[i].split(",");
 
         const objeto = {};
 
-        cabeceras.forEach((cabecera, indice) => {
-            objeto[cabecera] = columnas[indice];
-        });
+
+        cabeceras.forEach(
+            (cabecera, indice) => {
+
+                objeto[cabecera] =
+                    columnas[indice];
+
+            }
+        );
+
 
         resultado.push(objeto);
+
     }
 
+
     return resultado;
+
 }
 
 
 // ============================================
-// CARGAR INFORMACIÓN DE LAS LÍNEAS
+// CARGAR INFORMACIÓN DE METROVALENCIA
 // ============================================
 
 async function cargarDatosMetrovalencia() {
 
-    console.log("🚇 Cargando datos GTFS...");
+    console.log(
+        "🚇 Cargando datos GTFS..."
+    );
+
+
+    // ========================================
+    // CARGAR ARCHIVOS
+    // ========================================
 
     const [
-    textoRoutes,
-    textoTrips,
-    textoShapes,
-    textoStops
-] = await Promise.all([
 
-    cargarArchivoGTFS("routes.txt"),
-    cargarArchivoGTFS("trips.txt"),
-    cargarArchivoGTFS("shapes.txt"),
-    cargarArchivoGTFS("stops.txt")
+        textoRoutes,
+        textoTrips,
+        textoShapes,
+        textoStops,
+        textoStopTimes
 
-]);
+    ] = await Promise.all([
 
-    console.log("✅ routes.txt cargado");
-    console.log("✅ trips.txt cargado");
-    console.log("✅ shapes.txt cargado");
-console.log("✅ stops.txt cargado");
+        cargarArchivoGTFS(
+            "routes.txt"
+        ),
+
+        cargarArchivoGTFS(
+            "trips.txt"
+        ),
+
+        cargarArchivoGTFS(
+            "shapes.txt"
+        ),
+
+        cargarArchivoGTFS(
+            "stops.txt"
+        ),
+
+        cargarArchivoGTFS(
+            "stop_times.txt"
+        )
+
+    ]);
 
 
-    const routes = analizarCSV(textoRoutes);
-    const trips = analizarCSV(textoTrips);
-const stops = analizarCSV(textoStops);
+    console.log(
+        "✅ routes.txt cargado"
+    );
 
-console.log(
-    "🚉 Paradas encontradas:",
-    stops.length
-);
+    console.log(
+        "✅ trips.txt cargado"
+    );
+
+    console.log(
+        "✅ shapes.txt cargado"
+    );
+
+    console.log(
+        "✅ stops.txt cargado"
+    );
+
+    console.log(
+        "✅ stop_times.txt cargado"
+    );
 
 
     // ========================================
-    // AGRUPAR RUTAS POR LÍNEA
+    // ANALIZAR CSV
     // ========================================
 
-    const lineas = {};
+    const routes =
+        analizarCSV(textoRoutes);
+
+    const trips =
+        analizarCSV(textoTrips);
+
+    const shapes =
+        analizarCSV(textoShapes);
+
+    const stops =
+        analizarCSV(textoStops);
+
+    const stopTimes =
+        analizarCSV(textoStopTimes);
 
 
-    for (const route of routes) {
+    console.log(
+        "🚉 Paradas encontradas:",
+        stops.length
+    );
 
-        const numeroLinea =
-            route.route_short_name;
-
-        if (!numeroLinea) {
-            continue;
-        }
+    console.log(
+        "⏱️ Registros stop_times:",
+        stopTimes.length
+    );
 
 
-       if (!lineas[numeroLinea]) {
+    // ========================================
+    // COLORES DE LAS LÍNEAS
+    // ========================================
 
     const coloresMetrovalencia = {
 
@@ -122,27 +195,88 @@ console.log(
     };
 
 
-    lineas[numeroLinea] = {
+    // ========================================
+    // CREAR ÍNDICE DE RUTAS
+    // ========================================
 
-        nombre:
-            numeroLinea,
-
-        color:
-            coloresMetrovalencia[numeroLinea]
-            || "#666666",
-
-        routeIds: [],
-
-        shapes: []
-
-    };
-
-}
+    const rutasPorId = {};
 
 
-        lineas[numeroLinea]
-            .routeIds
-            .push(route.route_id);
+    for (const route of routes) {
+
+        rutasPorId[
+            route.route_id
+        ] = route;
+
+    }
+
+
+    // ========================================
+    // AGRUPAR RUTAS POR LÍNEA
+    // ========================================
+
+    const lineas = {};
+
+
+    for (const route of routes) {
+
+        const numeroLinea =
+            route.route_short_name;
+
+
+        if (!numeroLinea) {
+            continue;
+        }
+
+
+        if (!lineas[numeroLinea]) {
+
+            lineas[numeroLinea] = {
+
+                nombre:
+                    numeroLinea,
+
+                color:
+                    coloresMetrovalencia[
+                        numeroLinea
+                    ] || "#666666",
+
+                routeIds: [],
+
+                shapes: []
+
+            };
+
+        }
+
+
+        if (
+            !lineas[numeroLinea]
+                .routeIds
+                .includes(route.route_id)
+        ) {
+
+            lineas[numeroLinea]
+                .routeIds
+                .push(route.route_id);
+
+        }
+
+    }
+
+
+    // ========================================
+    // CREAR ÍNDICE DE TRIPS
+    // ========================================
+
+    const viajesPorId = {};
+
+
+    for (const trip of trips) {
+
+        viajesPorId[
+            trip.trip_id
+        ] = trip;
 
     }
 
@@ -154,9 +288,10 @@ console.log(
     for (const trip of trips) {
 
         const route =
-            routes.find(
-                r => r.route_id === trip.route_id
-            );
+            rutasPorId[
+                trip.route_id
+            ];
+
 
         if (!route) {
             continue;
@@ -195,9 +330,6 @@ console.log(
     // ANALIZAR SHAPES
     // ========================================
 
-    const shapes = analizarCSV(textoShapes);
-
-
     const shapesPorId = {};
 
 
@@ -208,7 +340,9 @@ console.log(
 
 
         if (!shapesPorId[id]) {
+
             shapesPorId[id] = [];
+
         }
 
 
@@ -235,10 +369,12 @@ console.log(
 
 
     // ========================================
-    // ORDENAR PUNTOS
+    // ORDENAR SHAPES
     // ========================================
 
-    for (const id in shapesPorId) {
+    for (
+        const id in shapesPorId
+    ) {
 
         shapesPorId[id].sort(
             (a, b) =>
@@ -249,23 +385,178 @@ console.log(
     }
 
 
+    // ========================================
+    // RELACIONAR ESTACIONES CON LÍNEAS
+    // ========================================
+
+    console.log(
+        "🔗 Calculando líneas por estación..."
+    );
+
+
+    const estacionesLineas = {};
+
+
+    // Crear todas las estaciones
+
+    for (const stop of stops) {
+
+        estacionesLineas[
+            stop.stop_id
+        ] = [];
+
+    }
+
+
+    // ========================================
+    // RECORRER STOP_TIMES
+    // ========================================
+
+    for (
+        const stopTime
+        of stopTimes
+    ) {
+
+        const stopId =
+            stopTime.stop_id;
+
+        const tripId =
+            stopTime.trip_id;
+
+
+        // Buscar el viaje mediante
+        // nuestro índice
+
+        const trip =
+            viajesPorId[tripId];
+
+
+        if (!trip) {
+            continue;
+        }
+
+
+        // Buscar la ruta
+
+        const route =
+            rutasPorId[
+                trip.route_id
+            ];
+
+
+        if (!route) {
+            continue;
+        }
+
+
+        const numeroLinea =
+            route.route_short_name;
+
+
+        if (!numeroLinea) {
+            continue;
+        }
+
+
+        // Comprobar que existe
+        // la estación
+
+        if (
+            !estacionesLineas[
+                stopId
+            ]
+        ) {
+
+            estacionesLineas[
+                stopId
+            ] = [];
+
+        }
+
+
+        // Añadir la línea si
+        // todavía no existe
+
+        if (
+            !estacionesLineas[
+                stopId
+            ].includes(
+                numeroLinea
+            )
+        ) {
+
+            estacionesLineas[
+                stopId
+            ].push(
+                numeroLinea
+            );
+
+        }
+
+    }
+
+
+    // ========================================
+    // ORDENAR LÍNEAS DE CADA ESTACIÓN
+    // ========================================
+
+    for (
+        const stopId
+        in estacionesLineas
+    ) {
+
+        estacionesLineas[
+            stopId
+        ].sort(
+
+            (a, b) =>
+                parseInt(a) -
+                parseInt(b)
+
+        );
+
+    }
+
+
+    console.log(
+        "🔗 Relación estaciones → líneas creada"
+    );
+
+
+    // ========================================
+    // MOSTRAR INFORMACIÓN
+    // ========================================
+
     console.log(
         "🚇 Líneas encontradas:",
         lineas
     );
 
 
+    console.log(
+        "🚉 Estaciones con líneas:",
+        estacionesLineas
+    );
+
+
+    // ========================================
+    // RESULTADO FINAL
+    // ========================================
+
     return {
 
-    lineas:
-        lineas,
+        lineas:
+            lineas,
 
-    shapes:
-        shapesPorId,
+        shapes:
+            shapesPorId,
 
-    stops:
-        stops
+        stops:
+            stops,
 
-};
+        estacionesLineas:
+            estacionesLineas
+
+    };
 
 }

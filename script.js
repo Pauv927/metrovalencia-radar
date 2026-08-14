@@ -39,15 +39,15 @@ L.tileLayer(
 const coloresMetrovalencia = {
 
     "1": "#FEC601",
-    "2": "#FEC601",
-    "3": "#E60096",
-    "4": "#008C95",
-    "5": "#E60096",
-    "6": "#008C95",
-    "7": "#E60096",
-    "8": "#008C95",
-    "9": "#FEC601",
-    "10": "#E60096"
+    "2": "#E60096",
+    "3": "#DD052C",
+    "4": "#014A99",
+    "5": "#008F71",
+    "6": "#8884BF",
+    "7": "#F28D01",
+    "8": "#B8804F",
+    "9": "#B7DD79",
+    "10": "#B7DD79"
 
 };
 
@@ -62,17 +62,24 @@ function convertirHoraSegundos(hora) {
         return null;
     }
 
+
     const partes =
         hora.split(":");
+
 
     if (partes.length !== 3) {
         return null;
     }
 
+
     return (
+
         parseInt(partes[0]) * 3600 +
+
         parseInt(partes[1]) * 60 +
+
         parseInt(partes[2])
+
     );
 
 }
@@ -87,10 +94,15 @@ function obtenerHoraActual() {
     const ahora =
         new Date();
 
+
     return (
+
         ahora.getHours() * 3600 +
+
         ahora.getMinutes() * 60 +
+
         ahora.getSeconds()
+
     );
 
 }
@@ -106,23 +118,32 @@ function formatearHora(hora) {
         return "--:--";
     }
 
+
     const partes =
         hora.split(":");
+
 
     let horas =
         parseInt(partes[0]);
 
+
     const minutos =
         partes[1];
+
 
     horas =
         horas % 24;
 
+
     return (
+
         String(horas)
             .padStart(2, "0")
+
         + ":" +
+
         minutos
+
     );
 
 }
@@ -138,18 +159,22 @@ function formatearTiempoRestante(segundos) {
         segundos = 0;
     }
 
+
     const minutos =
         Math.floor(
             segundos / 60
         );
 
+
     if (minutos === 0) {
         return "ahora";
     }
 
+
     if (minutos === 1) {
         return "1 min";
     }
+
 
     return (
         minutos +
@@ -185,6 +210,7 @@ function obtenerProximosTrenes(
 
     const trenes = [];
 
+
     // ========================================
     // EVITAR DUPLICADOS
     // ========================================
@@ -211,7 +237,9 @@ function obtenerProximosTrenes(
         if (
             segundosSalida === null
         ) {
+
             continue;
+
         }
 
 
@@ -307,12 +335,12 @@ function obtenerProximosTrenes(
 
 
     // ========================================
-    // DEVOLVER LOS 8 PRÓXIMOS
+    // DEVOLVER LOS 5 PRÓXIMOS
     // ========================================
 
     return trenes.slice(
         0,
-        8
+        5
     );
 
 }
@@ -454,6 +482,42 @@ function crearHTMLProximosTrenes(
 
 
 // ============================================
+// ICONO DE ESTACIÓN
+// ============================================
+
+const iconoEstacion =
+    L.divIcon({
+
+        className:
+            "icono-estacion-metrovalencia",
+
+        html: `
+
+            <img
+                src="logo.png"
+                style="
+                    width:28px;
+                    height:28px;
+                    object-fit:contain;
+                    display:block;
+                "
+            >
+
+        `,
+
+        iconSize:
+            [28, 28],
+
+        iconAnchor:
+            [14, 14],
+
+        popupAnchor:
+            [0, -14]
+
+    });
+
+
+// ============================================
 // DIBUJAR TODA LA RED
 // ============================================
 
@@ -469,6 +533,7 @@ cargarDatosMetrovalencia()
 
         const lineas =
             datos.lineas;
+
 
         const shapes =
             datos.shapes;
@@ -531,8 +596,10 @@ cargarDatosMetrovalencia()
                 const coordenadas =
                     puntos.map(
                         punto => [
+
                             punto.lat,
                             punto.lon
+
                         ]
                     );
 
@@ -737,29 +804,17 @@ cargarDatosMetrovalencia()
 
 
             // =================================
-            // MARCADOR
+            // MARCADOR CON LOGO
             // =================================
 
-            L.circleMarker(
+            L.marker(
 
                 [lat, lon],
 
                 {
 
-                    radius:
-                        5,
-
-                    color:
-                        "#ffffff",
-
-                    weight:
-                        2,
-
-                    fillColor:
-                        "#181818",
-
-                    fillOpacity:
-                        1
+                    icon:
+                        iconoEstacion
 
                 }
 

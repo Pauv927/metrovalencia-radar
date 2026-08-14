@@ -176,21 +176,21 @@ async function cargarDatosMetrovalencia() {
 
 
     // ========================================
-    // COLORES DE LAS LÍNEAS
+    // COLORES OFICIALES DE LAS LÍNEAS
     // ========================================
 
     const coloresMetrovalencia = {
 
         "1": "#FEC601",
-        "2": "#FEC601",
-        "3": "#E60096",
-        "4": "#008C95",
-        "5": "#E60096",
-        "6": "#008C95",
-        "7": "#E60096",
-        "8": "#008C95",
-        "9": "#FEC601",
-        "10": "#E60096"
+        "2": "#E60096",
+        "3": "#DD052C",
+        "4": "#014A99",
+        "5": "#008F71",
+        "6": "#8884BF",
+        "7": "#F28D01",
+        "8": "#B8804F",
+        "9": "#B7DD79",
+        "10": "#B7DD79"
 
     };
 
@@ -236,10 +236,15 @@ async function cargarDatosMetrovalencia() {
                 nombre:
                     numeroLinea,
 
-              color:
-    route.route_color
-        ? "#" + route.route_color
-        : "#666666",
+                // IMPORTANTE:
+                // NO usamos route.route_color
+                // porque cambia según el servicio.
+
+                color:
+                    coloresMetrovalencia[
+                        numeroLinea
+                    ] ||
+                    "#666666",
 
                 routeIds: [],
 
@@ -253,12 +258,16 @@ async function cargarDatosMetrovalencia() {
         if (
             !lineas[numeroLinea]
                 .routeIds
-                .includes(route.route_id)
+                .includes(
+                    route.route_id
+                )
         ) {
 
             lineas[numeroLinea]
                 .routeIds
-                .push(route.route_id);
+                .push(
+                    route.route_id
+                );
 
         }
 
@@ -280,67 +289,72 @@ async function cargarDatosMetrovalencia() {
 
     }
 
-  // ========================================
-// OBTENER SHAPES DE CADA LÍNEA
-// ========================================
 
-console.log(
-    "🛤️ Analizando recorridos..."
-);
+    // ========================================
+    // OBTENER SHAPES DE CADA LÍNEA
+    // ========================================
 
-
-// ========================================
-// EVITAR SHAPES DUPLICADOS
-// ========================================
-
-for (const trip of trips) {
-
-    const route =
-        rutasPorId[
-            trip.route_id
-        ];
+    console.log(
+        "🛤️ Analizando recorridos..."
+    );
 
 
-    if (!route) {
-        continue;
+    // ========================================
+    // EVITAR SHAPES DUPLICADOS
+    // ========================================
+
+    for (const trip of trips) {
+
+        const route =
+            rutasPorId[
+                trip.route_id
+            ];
+
+
+        if (!route) {
+            continue;
+        }
+
+
+        const numeroLinea =
+            route.route_short_name;
+
+
+        if (!lineas[numeroLinea]) {
+            continue;
+        }
+
+
+        const shapeId =
+            trip.shape_id;
+
+
+        if (!shapeId) {
+            continue;
+        }
+
+
+        // ====================================
+        // AÑADIR SOLO UNA VEZ CADA SHAPE
+        // ====================================
+
+        if (
+            !lineas[numeroLinea]
+                .shapes
+                .includes(
+                    shapeId
+                )
+        ) {
+
+            lineas[numeroLinea]
+                .shapes
+                .push(
+                    shapeId
+                );
+
+        }
+
     }
-
-
-    const numeroLinea =
-        route.route_short_name;
-
-
-    if (!lineas[numeroLinea]) {
-        continue;
-    }
-
-
-    const shapeId =
-        trip.shape_id;
-
-
-    if (!shapeId) {
-        continue;
-    }
-
-
-    // ====================================
-    // AÑADIR SOLO UNA VEZ CADA SHAPE
-    // ====================================
-
-    if (
-        !lineas[numeroLinea]
-            .shapes
-            .includes(shapeId)
-    ) {
-
-        lineas[numeroLinea]
-            .shapes
-            .push(shapeId);
-
-    }
-
-}
 
 
     // ========================================
@@ -441,11 +455,12 @@ for (const trip of trips) {
             stopTime.trip_id;
 
 
-        // Buscar el viaje mediante
-        // nuestro índice
+        // Buscar el viaje
 
         const trip =
-            viajesPorId[tripId];
+            viajesPorId[
+                tripId
+            ];
 
 
         if (!trip) {
@@ -491,8 +506,8 @@ for (const trip of trips) {
         }
 
 
-        // Añadir la línea si
-        // todavía no existe
+        // Añadir la línea
+        // si todavía no existe
 
         if (
             !estacionesLineas[
@@ -539,160 +554,171 @@ for (const trip of trips) {
         "🔗 Relación estaciones → líneas creada"
     );
 
-// ========================================
-// CREAR HORARIOS POR ESTACIÓN
-// ========================================
 
-console.log(
-    "🕐 Calculando horarios por estación..."
-);
+    // ========================================
+    // CREAR HORARIOS POR ESTACIÓN
+    // ========================================
 
-
-// ========================================
-// CONVERTIR HH:MM:SS A SEGUNDOS
-// ========================================
-
-function convertirHora(hora) {
-
-    const partes =
-        hora.split(":");
-
-
-    return (
-
-        parseInt(partes[0]) * 3600 +
-
-        parseInt(partes[1]) * 60 +
-
-        parseInt(partes[2])
-
+    console.log(
+        "🕐 Calculando horarios por estación..."
     );
 
-}
+
+    // ========================================
+    // CONVERTIR HH:MM:SS A SEGUNDOS
+    // ========================================
+
+    function convertirHora(hora) {
+
+        if (!hora) {
+            return 0;
+        }
 
 
-const horariosPorEstacion = {};
+        const partes =
+            hora.split(":");
 
 
-// ========================================
-// RECORRER STOP_TIMES
-// ========================================
+        return (
 
-for (const stopTime of stopTimes) {
+            parseInt(partes[0]) * 3600 +
 
-    const stopId =
-        stopTime.stop_id;
+            parseInt(partes[1]) * 60 +
 
-    const tripId =
-        stopTime.trip_id;
+            parseInt(partes[2])
 
+        );
 
-    const trip =
-        viajesPorId[tripId];
-
-
-    if (!trip) {
-        continue;
     }
 
 
-    const route =
-        rutasPorId[
-            trip.route_id
-        ];
+    const horariosPorEstacion = {};
 
 
-    if (!route) {
-        continue;
-    }
+    // ========================================
+    // RECORRER STOP_TIMES
+    // ========================================
+
+    for (const stopTime of stopTimes) {
+
+        const stopId =
+            stopTime.stop_id;
+
+        const tripId =
+            stopTime.trip_id;
 
 
-    const numeroLinea =
-        route.route_short_name;
+        const trip =
+            viajesPorId[
+                tripId
+            ];
 
 
-    if (!numeroLinea) {
-        continue;
-    }
+        if (!trip) {
+            continue;
+        }
 
 
-    if (
-        !horariosPorEstacion[
+        const route =
+            rutasPorId[
+                trip.route_id
+            ];
+
+
+        if (!route) {
+            continue;
+        }
+
+
+        const numeroLinea =
+            route.route_short_name;
+
+
+        if (!numeroLinea) {
+            continue;
+        }
+
+
+        if (
+            !horariosPorEstacion[
+                stopId
+            ]
+        ) {
+
+            horariosPorEstacion[
+                stopId
+            ] = [];
+
+        }
+
+
+        horariosPorEstacion[
             stopId
-        ]
+        ].push({
+
+            tripId:
+                tripId,
+
+            linea:
+                numeroLinea,
+
+            destino:
+                trip.trip_headsign,
+
+            llegada:
+                stopTime.arrival_time,
+
+            salida:
+                stopTime.departure_time,
+
+            secuencia:
+                parseInt(
+                    stopTime.stop_sequence
+                )
+
+        });
+
+    }
+
+
+    // ========================================
+    // ORDENAR HORARIOS
+    // ========================================
+
+    for (
+        const stopId
+        in horariosPorEstacion
     ) {
 
         horariosPorEstacion[
             stopId
-        ] = [];
+        ].sort(
+
+            (a, b) => {
+
+                return (
+
+                    convertirHora(
+                        a.salida
+                    ) -
+
+                    convertirHora(
+                        b.salida
+                    )
+
+                );
+
+            }
+
+        );
 
     }
 
 
-    horariosPorEstacion[
-        stopId
-    ].push({
-
-        tripId:
-            tripId,
-
-        linea:
-            numeroLinea,
-
-        destino:
-            trip.trip_headsign,
-
-        llegada:
-            stopTime.arrival_time,
-
-        salida:
-            stopTime.departure_time,
-
-        secuencia:
-            parseInt(
-                stopTime.stop_sequence
-            )
-
-    });
-
-}
-
-
-// ========================================
-// ORDENAR HORARIOS
-// ========================================
-
-for (
-    const stopId
-    in horariosPorEstacion
-) {
-
-    horariosPorEstacion[
-        stopId
-    ].sort(
-
-        (a, b) => {
-
-            return (
-                convertirHora(
-                    a.salida
-                ) -
-                convertirHora(
-                    b.salida
-                )
-            );
-
-        }
-
+    console.log(
+        "🕐 Horarios por estación creados:",
+        horariosPorEstacion
     );
-
-}
-
-
-console.log(
-    "🕐 Horarios por estación creados:",
-    horariosPorEstacion
-);
 
 
     // ========================================
@@ -715,23 +741,26 @@ console.log(
     // RESULTADO FINAL
     // ========================================
 
-   return {
+    return {
 
-    lineas:
-        lineas,
+        lineas:
+            lineas,
 
-    shapes:
-        shapesPorId,
+        shapes:
+            shapesPorId,
 
-    stops:
-        stops,
+        stops:
+            stops,
 
-    estacionesLineas:
-        estacionesLineas,
+        estacionesLineas:
+            estacionesLineas,
 
-    horariosPorEstacion:
-        horariosPorEstacion
+        horariosPorEstacion:
+            horariosPorEstacion,
 
-};
+        colores:
+            coloresMetrovalencia
+
+    };
 
 }

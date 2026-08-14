@@ -26,10 +26,8 @@ const mapa =
 L.tileLayer(
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     {
-
         attribution:
             "&copy; OpenStreetMap contributors"
-
     }
 ).addTo(mapa);
 
@@ -64,24 +62,17 @@ function convertirHoraSegundos(hora) {
         return null;
     }
 
-
     const partes =
         hora.split(":");
-
 
     if (partes.length !== 3) {
         return null;
     }
 
-
     return (
-
         parseInt(partes[0]) * 3600 +
-
         parseInt(partes[1]) * 60 +
-
         parseInt(partes[2])
-
     );
 
 }
@@ -96,15 +87,10 @@ function obtenerHoraActual() {
     const ahora =
         new Date();
 
-
     return (
-
         ahora.getHours() * 3600 +
-
         ahora.getMinutes() * 60 +
-
         ahora.getSeconds()
-
     );
 
 }
@@ -120,36 +106,23 @@ function formatearHora(hora) {
         return "--:--";
     }
 
-
     const partes =
         hora.split(":");
-
 
     let horas =
         parseInt(partes[0]);
 
-
     const minutos =
         partes[1];
-
-
-    // GTFS puede utilizar
-    // horas superiores a 23
-    // para servicios nocturnos
 
     horas =
         horas % 24;
 
-
     return (
-
         String(horas)
             .padStart(2, "0")
-
         + ":" +
-
         minutos
-
     );
 
 }
@@ -165,26 +138,18 @@ function formatearTiempoRestante(segundos) {
         segundos = 0;
     }
 
-
     const minutos =
         Math.floor(
             segundos / 60
         );
 
-
     if (minutos === 0) {
-
         return "ahora";
-
     }
-
 
     if (minutos === 1) {
-
         return "1 min";
-
     }
-
 
     return (
         minutos +
@@ -220,8 +185,12 @@ function obtenerProximosTrenes(
 
     const trenes = [];
 
-    // Evitar duplicados
-    const duplicados = new Set();
+    // ========================================
+    // EVITAR DUPLICADOS
+    // ========================================
+
+    const duplicados =
+        new Set();
 
 
     // ========================================
@@ -243,131 +212,6 @@ function obtenerProximosTrenes(
             segundosSalida === null
         ) {
             continue;
-        }
-
-
-        let diferencia =
-            segundosSalida -
-            ahora;
-
-
-        // Servicios después de medianoche
-
-        if (
-            diferencia < 0 &&
-            segundosSalida < 6 * 3600
-        ) {
-
-            diferencia +=
-                24 * 3600;
-
-        }
-
-
-        if (diferencia < 0) {
-            continue;
-        }
-
-
-        // ====================================
-        // IDENTIFICADOR DEL SERVICIO
-        // ====================================
-
-        const clave =
-            horario.linea +
-            "|" +
-            horario.destino +
-            "|" +
-            horario.salida;
-
-
-        // Si ya existe, ignorarlo
-
-        if (
-            duplicados.has(clave)
-        ) {
-            continue;
-        }
-
-
-        duplicados.add(clave);
-
-
-        trenes.push({
-
-            ...horario,
-
-            segundosSalida:
-                segundosSalida,
-
-            diferencia:
-                diferencia
-
-        });
-
-    }
-
-
-    // ========================================
-    // ORDENAR
-    // ========================================
-
-    trenes.sort(
-
-        (a, b) =>
-            a.diferencia -
-            b.diferencia
-
-    );
-
-
-    return trenes.slice(
-        0,
-        8
-    );
-
-}
-    const horarios =
-        datos.horariosPorEstacion[
-            stopId
-        ] || [];
-
-
-    if (horarios.length === 0) {
-
-        return [];
-
-    }
-
-
-    const ahora =
-        obtenerHoraActual();
-
-
-    const trenes = [];
-
-
-    // ========================================
-    // BUSCAR SERVICIOS FUTUROS
-    // ========================================
-
-    for (
-        const horario
-        of horarios
-    ) {
-
-        const segundosSalida =
-            convertirHoraSegundos(
-                horario.salida
-            );
-
-
-        if (
-            segundosSalida === null
-        ) {
-
-            continue;
-
         }
 
 
@@ -391,7 +235,9 @@ function obtenerProximosTrenes(
         }
 
 
-        // Ignorar trenes pasados
+        // ====================================
+        // IGNORAR TRENES PASADOS
+        // ====================================
 
         if (
             diferencia < 0
@@ -401,6 +247,36 @@ function obtenerProximosTrenes(
 
         }
 
+
+        // ====================================
+        // CLAVE PARA ELIMINAR DUPLICADOS
+        // ====================================
+
+        const clave =
+            horario.linea +
+            "|" +
+            horario.destino +
+            "|" +
+            horario.salida;
+
+
+        if (
+            duplicados.has(clave)
+        ) {
+
+            continue;
+
+        }
+
+
+        duplicados.add(
+            clave
+        );
+
+
+        // ====================================
+        // GUARDAR TREN
+        // ====================================
 
         trenes.push({
 
@@ -470,8 +346,8 @@ function crearHTMLProximosTrenes(
                     margin-top:8px;
                 "
             >
-                No hay más trenes programados
-                próximamente.
+                No hay más trenes
+                programados próximamente.
             </div>
 
         `;
@@ -598,17 +474,22 @@ cargarDatosMetrovalencia()
             datos.shapes;
 
 
+        // ====================================
+        // DEBUG
+        // ====================================
+
+        console.log(
+            "🔍 Shapes por línea:",
+            lineas
+        );
+
+
         let totalShapes = 0;
 
 
         // ====================================
         // RECORRER LÍNEAS
         // ====================================
-
-console.log(
-    "🔍 Shapes por línea:",
-    lineas
-);
 
         for (
             const numeroLinea in lineas
@@ -650,10 +531,8 @@ console.log(
                 const coordenadas =
                     puntos.map(
                         punto => [
-
                             punto.lat,
                             punto.lon
-
                         ]
                     );
 

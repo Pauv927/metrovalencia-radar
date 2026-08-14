@@ -58,24 +58,33 @@ async function cargarDatosMetrovalencia() {
     console.log("🚇 Cargando datos GTFS...");
 
     const [
-        textoRoutes,
-        textoTrips,
-        textoShapes
-    ] = await Promise.all([
+    textoRoutes,
+    textoTrips,
+    textoShapes,
+    textoStops
+] = await Promise.all([
 
-        cargarArchivoGTFS("routes.txt"),
-        cargarArchivoGTFS("trips.txt"),
-        cargarArchivoGTFS("shapes.txt")
+    cargarArchivoGTFS("routes.txt"),
+    cargarArchivoGTFS("trips.txt"),
+    cargarArchivoGTFS("shapes.txt"),
+    cargarArchivoGTFS("stops.txt")
 
-    ]);
+]);
 
     console.log("✅ routes.txt cargado");
     console.log("✅ trips.txt cargado");
     console.log("✅ shapes.txt cargado");
+console.log("✅ stops.txt cargado");
 
 
     const routes = analizarCSV(textoRoutes);
     const trips = analizarCSV(textoTrips);
+const stops = analizarCSV(textoStops);
+
+console.log(
+    "🚉 Paradas encontradas:",
+    stops.length
+);
 
 
     // ========================================
@@ -95,24 +104,40 @@ async function cargarDatosMetrovalencia() {
         }
 
 
-        if (!lineas[numeroLinea]) {
+       if (!lineas[numeroLinea]) {
 
-            lineas[numeroLinea] = {
+    const coloresMetrovalencia = {
 
-                nombre:
-                    numeroLinea,
+        "1": "#FEC601",
+        "2": "#FEC601",
+        "3": "#E60096",
+        "4": "#008C95",
+        "5": "#E60096",
+        "6": "#008C95",
+        "7": "#E60096",
+        "8": "#008C95",
+        "9": "#FEC601",
+        "10": "#E60096"
 
-                color:
-                    "#" +
-                    route.route_color,
+    };
 
-                routeIds: [],
 
-                shapes: []
+    lineas[numeroLinea] = {
 
-            };
+        nombre:
+            numeroLinea,
 
-        }
+        color:
+            coloresMetrovalencia[numeroLinea]
+            || "#666666",
+
+        routeIds: [],
+
+        shapes: []
+
+    };
+
+}
 
 
         lineas[numeroLinea]
@@ -232,12 +257,15 @@ async function cargarDatosMetrovalencia() {
 
     return {
 
-        lineas:
-            lineas,
+    lineas:
+        lineas,
 
-        shapes:
-            shapesPorId
+    shapes:
+        shapesPorId,
 
-    };
+    stops:
+        stops
+
+};
 
 }

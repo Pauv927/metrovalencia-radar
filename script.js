@@ -167,20 +167,153 @@ for (const estacion of estaciones) {
         continue;
     }
 
-    L.circleMarker(
-        [lat, lon],
-        {
-            radius: 5,
-            color: "#ffffff",
-            weight: 2,
-            fillColor: "#181818",
-            fillOpacity: 1
-        }
-    )
-    .addTo(mapa)
-    .bindTooltip(
-        estacion.stop_name
-    );
+    const lineasEstacion =
+    datos.estacionesLineas[
+        estacion.stop_id
+    ] || [];
+
+
+const colores = {
+
+    "1": "#FEC601",
+    "2": "#FEC601",
+    "3": "#E60096",
+    "4": "#008C95",
+    "5": "#E60096",
+    "6": "#008C95",
+    "7": "#E60096",
+    "8": "#008C95",
+    "9": "#FEC601",
+    "10": "#E60096"
+
+};
+
+
+let htmlLineas = "";
+
+
+for (
+    const linea
+    of lineasEstacion
+) {
+
+    const color =
+        colores[linea] ||
+        "#666666";
+
+
+    htmlLineas += `
+
+        <span
+            style="
+                display:inline-block;
+                padding:4px 7px;
+                margin:2px;
+                border-radius:5px;
+                background:${color};
+                color:#111;
+                font-weight:bold;
+            "
+        >
+            L${linea}
+        </span>
+
+    `;
+
+}
+
+
+if (!htmlLineas) {
+
+    htmlLineas =
+        "<span>Sin información</span>";
+
+}
+
+
+const popup = `
+
+    <div
+        style="
+            min-width:180px;
+        "
+    >
+
+        <h3
+            style="
+                margin:0 0 10px 0;
+            "
+        >
+            🚉 ${estacion.stop_name}
+        </h3>
+
+
+        <div
+            style="
+                margin-bottom:10px;
+            "
+        >
+
+            <strong>
+                Líneas
+            </strong>
+
+            <br>
+
+            ${htmlLineas}
+
+        </div>
+
+
+        <div>
+
+            <strong>
+                🚆 Próximos trenes
+            </strong>
+
+            <br>
+
+            <span
+                style="
+                    color:#777;
+                "
+            >
+                Próximamente...
+            </span>
+
+        </div>
+
+    </div>
+
+`;
+
+
+L.circleMarker(
+    [lat, lon],
+    {
+
+        radius: 5,
+
+        color: "#ffffff",
+
+        weight: 2,
+
+        fillColor: "#181818",
+
+        fillOpacity: 1
+
+    }
+
+)
+.addTo(mapa)
+
+.bindTooltip(
+    estacion.stop_name
+)
+
+.bindPopup(
+    popup
+);
 }
 
 console.log(

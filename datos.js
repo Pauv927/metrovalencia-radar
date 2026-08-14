@@ -181,15 +181,15 @@ async function cargarDatosMetrovalencia() {
 
     const coloresMetrovalencia = {
 
-        "1": "#FEC601",
-        "2": "#E60096",
-        "3": "#DD052C",
-        "4": "#014A99",
-        "5": "#008F71",
-        "6": "#8884BF",
-        "7": "#F28D01",
-        "8": "#B8804F",
-        "9": "#B7DD79",
+        "1":  "#FEC601",
+        "2":  "#CE142B",
+        "3":  "#DD052C",
+        "4":  "#F28D01",
+        "5":  "#8884BF",
+        "6":  "#F28D01",
+        "7":  "#82CEE6",
+        "8":  "#3EB0CB",
+        "9":  "#B8804F",
         "10": "#B7DD79"
 
     };
@@ -237,14 +237,14 @@ async function cargarDatosMetrovalencia() {
                     numeroLinea,
 
                 // IMPORTANTE:
-                // NO usamos route.route_color
-                // porque cambia según el servicio.
+                // No usamos route.route_color
+                // porque una misma línea puede
+                // tener colores diferentes en GTFS.
 
                 color:
                     coloresMetrovalencia[
                         numeroLinea
-                    ] ||
-                    "#666666",
+                    ] || "#666666",
 
                 routeIds: [],
 
@@ -341,16 +341,12 @@ async function cargarDatosMetrovalencia() {
         if (
             !lineas[numeroLinea]
                 .shapes
-                .includes(
-                    shapeId
-                )
+                .includes(shapeId)
         ) {
 
             lineas[numeroLinea]
                 .shapes
-                .push(
-                    shapeId
-                );
+                .push(shapeId);
 
         }
 
@@ -428,7 +424,9 @@ async function cargarDatosMetrovalencia() {
     const estacionesLineas = {};
 
 
-    // Crear todas las estaciones
+    // ========================================
+    // CREAR TODAS LAS ESTACIONES
+    // ========================================
 
     for (const stop of stops) {
 
@@ -455,12 +453,12 @@ async function cargarDatosMetrovalencia() {
             stopTime.trip_id;
 
 
-        // Buscar el viaje
+        // ====================================
+        // BUSCAR VIAJE
+        // ====================================
 
         const trip =
-            viajesPorId[
-                tripId
-            ];
+            viajesPorId[tripId];
 
 
         if (!trip) {
@@ -468,7 +466,9 @@ async function cargarDatosMetrovalencia() {
         }
 
 
-        // Buscar la ruta
+        // ====================================
+        // BUSCAR RUTA
+        // ====================================
 
         const route =
             rutasPorId[
@@ -490,8 +490,9 @@ async function cargarDatosMetrovalencia() {
         }
 
 
-        // Comprobar que existe
-        // la estación
+        // ====================================
+        // COMPROBAR ESTACIÓN
+        // ====================================
 
         if (
             !estacionesLineas[
@@ -506,8 +507,9 @@ async function cargarDatosMetrovalencia() {
         }
 
 
-        // Añadir la línea
-        // si todavía no existe
+        // ====================================
+        // AÑADIR LÍNEA
+        // ====================================
 
         if (
             !estacionesLineas[
@@ -570,11 +572,6 @@ async function cargarDatosMetrovalencia() {
 
     function convertirHora(hora) {
 
-        if (!hora) {
-            return 0;
-        }
-
-
         const partes =
             hora.split(":");
 
@@ -609,9 +606,7 @@ async function cargarDatosMetrovalencia() {
 
 
         const trip =
-            viajesPorId[
-                tripId
-            ];
+            viajesPorId[tripId];
 
 
         if (!trip) {
@@ -697,15 +692,12 @@ async function cargarDatosMetrovalencia() {
             (a, b) => {
 
                 return (
-
                     convertirHora(
                         a.salida
                     ) -
-
                     convertirHora(
                         b.salida
                     )
-
                 );
 
             }

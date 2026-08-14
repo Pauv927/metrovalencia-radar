@@ -494,7 +494,7 @@ const iconoEstacion =
         html: `
 
             <img
-                src="logo.png"
+                src="logo-metrovalencia.png"
                 style="
                     width:28px;
                     height:28px;

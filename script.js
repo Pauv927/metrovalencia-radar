@@ -1,14 +1,22 @@
-console.log("🚇 Metrovalencia Radar iniciado");
-
-
 // ============================================
-// CREAR MAPA
+// METROVALENCIA RADAR
 // ============================================
 
-const mapa = L.map("mapa").setView(
-    [39.4699, -0.3763],
-    11
+console.log(
+    "🚇 Metrovalencia Radar iniciado"
 );
+
+
+// ============================================
+// MAPA
+// ============================================
+
+const mapa =
+    L.map("mapa")
+        .setView(
+            [39.4699, -0.3763],
+            11
+        );
 
 
 // ============================================
@@ -18,77 +26,150 @@ const mapa = L.map("mapa").setView(
 L.tileLayer(
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     {
+
         attribution:
             "&copy; OpenStreetMap contributors"
+
     }
 ).addTo(mapa);
 
 
 // ============================================
-// CARGAR SHAPE
+// DIBUJAR TODA LA RED
 // ============================================
 
-cargarShapes()
-    .then(texto => {
+cargarDatosMetrovalencia()
+
+    .then(datos => {
+
 
         console.log(
-            "🔎 Buscando shape 74..."
-        );
-
-        const puntos =
-            obtenerShape(texto, 74);
-
-        console.log(
-            "📍 Puntos encontrados:",
-            puntos.length
+            "🎉 GTFS cargado correctamente"
         );
 
 
-        // Convertir a formato Leaflet
+        const lineas =
+            datos.lineas;
 
-        const coordenadas =
-            puntos.map(punto => [
-                punto.lat,
-                punto.lon
-            ]);
+        const shapes =
+            datos.shapes;
 
 
-        // Dibujar línea
+        let totalShapes = 0;
 
-        const linea =
-            L.polyline(
-                coordenadas,
-                {
-                    color: "#E60096",
-                    weight: 5,
-                    opacity: 0.9
+
+        // ====================================
+        // RECORRER LÍNEAS
+        // ====================================
+
+        for (
+            const numeroLinea in lineas
+        ) {
+
+
+            const linea =
+                lineas[numeroLinea];
+
+
+            console.log(
+                "🚇 Dibujando L" +
+                numeroLinea
+            );
+
+
+            // =================================
+            // RECORRER SHAPES
+            // =================================
+
+            for (
+                const shapeId
+                of linea.shapes
+            ) {
+
+
+                const puntos =
+                    shapes[shapeId];
+
+
+                if (
+                    !puntos ||
+                    puntos.length < 2
+                ) {
+
+                    continue;
+
                 }
-            ).addTo(mapa);
 
 
-        // Centrar el mapa en la línea
+                const coordenadas =
+                    puntos.map(
+                        punto => [
 
-        mapa.fitBounds(
-            linea.getBounds()
-        );
+                            punto.lat,
+                            punto.lon
+
+                        ]
+                    );
+
+
+                // =============================
+                // DIBUJAR
+                // =============================
+
+                L.polyline(
+
+                    coordenadas,
+
+                    {
+
+                        color:
+                            linea.color,
+
+                        weight:
+                            5,
+
+                        opacity:
+                            0.85
+
+                    }
+
+                ).addTo(mapa);
+
+
+                totalShapes++;
+
+            }
+
+        }
 
 
         console.log(
-            "🎉 ¡Shape dibujado!"
+            "🗺️ Shapes dibujados:",
+            totalShapes
         );
 
-        document.getElementById("estado").textContent =
-            "Línea cargada";
+
+        document
+            .getElementById("estado")
+            .textContent =
+                "Red cargada";
+
 
     })
+
+
     .catch(error => {
 
+
         console.error(
-            "❌ Error:",
+            "❌ Error cargando GTFS:",
             error
         );
 
-        document.getElementById("estado").textContent =
-            "Error cargando datos";
+
+        document
+            .getElementById("estado")
+            .textContent =
+                "Error";
 
     });

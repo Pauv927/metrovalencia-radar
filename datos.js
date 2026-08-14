@@ -236,10 +236,10 @@ async function cargarDatosMetrovalencia() {
                 nombre:
                     numeroLinea,
 
-                color:
-                    coloresMetrovalencia[
-                        numeroLinea
-                    ] || "#666666",
+              color:
+    route.route_color
+        ? "#" + route.route_color
+        : "#666666",
 
                 routeIds: [],
 
@@ -280,50 +280,67 @@ async function cargarDatosMetrovalencia() {
 
     }
 
+  // ========================================
+// OBTENER SHAPES DE CADA LÍNEA
+// ========================================
 
-    // ========================================
-    // OBTENER SHAPES DE CADA LÍNEA
-    // ========================================
-
-    for (const trip of trips) {
-
-        const route =
-            rutasPorId[
-                trip.route_id
-            ];
+console.log(
+    "🛤️ Analizando recorridos..."
+);
 
 
-        if (!route) {
-            continue;
-        }
+// ========================================
+// EVITAR SHAPES DUPLICADOS
+// ========================================
+
+for (const trip of trips) {
+
+    const route =
+        rutasPorId[
+            trip.route_id
+        ];
 
 
-        const numeroLinea =
-            route.route_short_name;
+    if (!route) {
+        continue;
+    }
 
 
-        if (!lineas[numeroLinea]) {
-            continue;
-        }
+    const numeroLinea =
+        route.route_short_name;
 
 
-        const shapeId =
-            trip.shape_id;
+    if (!lineas[numeroLinea]) {
+        continue;
+    }
 
 
-        if (
-            !lineas[numeroLinea]
-                .shapes
-                .includes(shapeId)
-        ) {
+    const shapeId =
+        trip.shape_id;
 
-            lineas[numeroLinea]
-                .shapes
-                .push(shapeId);
 
-        }
+    if (!shapeId) {
+        continue;
+    }
+
+
+    // ====================================
+    // AÑADIR SOLO UNA VEZ CADA SHAPE
+    // ====================================
+
+    if (
+        !lineas[numeroLinea]
+            .shapes
+            .includes(shapeId)
+    ) {
+
+        lineas[numeroLinea]
+            .shapes
+            .push(shapeId);
 
     }
+
+}
 
 
     // ========================================

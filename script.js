@@ -210,6 +210,130 @@ function obtenerProximosTrenes(
 
 
     if (horarios.length === 0) {
+        return [];
+    }
+
+
+    const ahora =
+        obtenerHoraActual();
+
+
+    const trenes = [];
+
+    // Evitar duplicados
+    const duplicados = new Set();
+
+
+    // ========================================
+    // BUSCAR SERVICIOS FUTUROS
+    // ========================================
+
+    for (
+        const horario
+        of horarios
+    ) {
+
+        const segundosSalida =
+            convertirHoraSegundos(
+                horario.salida
+            );
+
+
+        if (
+            segundosSalida === null
+        ) {
+            continue;
+        }
+
+
+        let diferencia =
+            segundosSalida -
+            ahora;
+
+
+        // Servicios después de medianoche
+
+        if (
+            diferencia < 0 &&
+            segundosSalida < 6 * 3600
+        ) {
+
+            diferencia +=
+                24 * 3600;
+
+        }
+
+
+        if (diferencia < 0) {
+            continue;
+        }
+
+
+        // ====================================
+        // IDENTIFICADOR DEL SERVICIO
+        // ====================================
+
+        const clave =
+            horario.linea +
+            "|" +
+            horario.destino +
+            "|" +
+            horario.salida;
+
+
+        // Si ya existe, ignorarlo
+
+        if (
+            duplicados.has(clave)
+        ) {
+            continue;
+        }
+
+
+        duplicados.add(clave);
+
+
+        trenes.push({
+
+            ...horario,
+
+            segundosSalida:
+                segundosSalida,
+
+            diferencia:
+                diferencia
+
+        });
+
+    }
+
+
+    // ========================================
+    // ORDENAR
+    // ========================================
+
+    trenes.sort(
+
+        (a, b) =>
+            a.diferencia -
+            b.diferencia
+
+    );
+
+
+    return trenes.slice(
+        0,
+        8
+    );
+
+}
+    const horarios =
+        datos.horariosPorEstacion[
+            stopId
+        ] || [];
+
+
+    if (horarios.length === 0) {
 
         return [];
 
@@ -480,6 +604,11 @@ cargarDatosMetrovalencia()
         // ====================================
         // RECORRER LÍNEAS
         // ====================================
+
+console.log(
+    "🔍 Shapes por línea:",
+    lineas
+);
 
         for (
             const numeroLinea in lineas

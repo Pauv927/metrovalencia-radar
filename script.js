@@ -518,7 +518,592 @@ const iconoEstacion =
 
 
 // ============================================
-// DIBUJAR TODA LA RED
+// CONFIGURACIÓN DE LÍNEAS SUPERPUESTAS
+// ============================================
+
+// Distancia máxima para considerar que dos
+// recorridos están compartiendo el mismo punto.
+
+const DISTANCIA_COMPARTIDA_METROS =
+    12;
+
+
+// Separación entre líneas cuando comparten
+// recorrido.
+
+const SEPARACION_LINEAS_METROS =
+    5;
+
+
+// ============================================
+// CONVERTIR COORDENADAS A METROS
+// ============================================
+
+function coordenadasAMetros(
+    lat,
+    lon
+) {
+
+    const latRad =
+        lat *
+        Math.PI /
+        180;
+
+
+    return {
+
+        x:
+            lon *
+            111320 *
+            Math.cos(latRad),
+
+        y:
+            lat *
+            110540
+
+    };
+
+}
+
+
+// ============================================
+// DISTANCIA ENTRE DOS PUNTOS
+// ============================================
+
+function distanciaMetros(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+) {
+
+    const p1 =
+        coordenadasAMetros(
+            lat1,
+            lon1
+        );
+
+
+    const p2 =
+        coordenadasAMetros(
+            lat2,
+            lon2
+        );
+
+
+    const dx =
+        p2.x -
+        p1.x;
+
+
+    const dy =
+        p2.y -
+        p1.y;
+
+
+    return Math.sqrt(
+        dx * dx +
+        dy * dy
+    );
+
+}
+
+
+// ============================================
+// OBTENER VECTOR PERPENDICULAR
+// ============================================
+
+function obtenerPerpendicular(
+    puntos,
+    indice
+) {
+
+    const anterior =
+        puntos[
+            Math.max(
+                0,
+                indice - 1
+            )
+        ];
+
+
+    const siguiente =
+        puntos[
+            Math.min(
+                puntos.length - 1,
+                indice + 1
+            )
+        ];
+
+
+    const pAnterior =
+        coordenadasAMetros(
+            anterior.lat,
+            anterior.lon
+        );
+
+
+    const pSiguiente =
+        coordenadasAMetros(
+            siguiente.lat,
+            siguiente.lon
+        );
+
+
+    let dx =
+        pSiguiente.x -
+        pAnterior.x;
+
+
+    let dy =
+        pSiguiente.y -
+        pAnterior.y;
+
+
+    const longitud =
+        Math.sqrt(
+            dx * dx +
+            dy * dy
+        );
+
+
+    if (
+        longitud === 0
+    ) {
+
+        return {
+
+            x: 0,
+            y: 0
+
+        };
+
+    }
+
+
+    dx /=
+        longitud;
+
+
+    dy /=
+        longitud;
+
+
+    return {
+
+        x:
+            -dy,
+
+        y:
+            dx
+
+    };
+
+}
+
+
+// ============================================
+// DESPLAZAR UN PUNTO
+// ============================================
+
+function desplazarPunto(
+    punto,
+    perpendicular,
+    distancia
+) {
+
+    const metros =
+        coordenadasAMetros(
+            punto.lat,
+            punto.lon
+        );
+
+
+    const nuevoX =
+        metros.x +
+        perpendicular.x *
+        distancia;
+
+
+    const nuevoY =
+        metros.y +
+        perpendicular.y *
+        distancia;
+
+
+    const lat =
+        nuevoY /
+        110540;
+
+
+    const latRad =
+        lat *
+        Math.PI /
+        180;
+
+
+    const lon =
+        nuevoX /
+        (
+            111320 *
+            Math.cos(latRad)
+        );
+
+
+    return [
+        lat,
+        lon
+    ];
+
+}
+
+
+// ============================================
+// CREAR CLAVE ESPACIAL
+// ============================================
+
+function claveEspacial(
+    lat,
+    lon
+) {
+
+    const precision =
+        0.0001;
+
+
+    return (
+
+        Math.round(
+            lat / precision
+        )
+
+        +
+
+        "|" +
+
+        Math.round(
+            lon / precision
+        )
+
+    );
+
+}
+
+
+// ============================================
+// DIBUJAR RED CON SEPARACIÓN SELECTIVA
+// ============================================
+
+function dibujarRed(
+    lineas,
+    shapes
+) {
+
+    console.log(
+        "🗺️ Preparando red..."
+    );
+
+
+    // ========================================
+    // GUARDAR TODOS LOS RECORRIDOS
+    // ========================================
+
+    const puntosRed = [];
+
+
+    for (
+        const numeroLinea in lineas
+    ) {
+
+        const linea =
+            lineas[numeroLinea];
+
+
+        for (
+            const shapeId
+            of linea.shapes
+        ) {
+
+            const puntos =
+                shapes[shapeId];
+
+
+            if (
+                !puntos ||
+                puntos.length < 2
+            ) {
+
+                continue;
+
+            }
+
+
+            puntosRed.push({
+
+                numeroLinea:
+                    numeroLinea,
+
+                puntos:
+                    puntos
+
+            });
+
+        }
+
+    }
+
+
+    // ========================================
+    // CREAR ÍNDICE ESPACIAL
+    // ========================================
+
+    const indiceEspacial = {};
+
+
+    for (
+        const recorrido
+        of puntosRed
+    ) {
+
+        for (
+            const punto
+            of recorrido.puntos
+        ) {
+
+            const clave =
+                claveEspacial(
+                    punto.lat,
+                    punto.lon
+                );
+
+
+            if (
+                !indiceEspacial[clave]
+            ) {
+
+                indiceEspacial[clave] =
+                    new Set();
+
+            }
+
+
+            indiceEspacial[clave].add(
+                recorrido.numeroLinea
+            );
+
+        }
+
+    }
+
+
+    // ========================================
+    // DIBUJAR RECORRIDOS
+    // ========================================
+
+    let totalShapes = 0;
+
+
+    for (
+        const recorrido
+        of puntosRed
+    ) {
+
+        const numeroLinea =
+            recorrido.numeroLinea;
+
+
+        const linea =
+            lineas[numeroLinea];
+
+
+        const puntos =
+            recorrido.puntos;
+
+
+        const coordenadas = [];
+
+
+        // ====================================
+        // RECORRER PUNTOS
+        // ====================================
+
+        for (
+            let i = 0;
+            i < puntos.length;
+            i++
+        ) {
+
+            const punto =
+                puntos[i];
+
+
+            const clave =
+                claveEspacial(
+                    punto.lat,
+                    punto.lon
+                );
+
+
+            const lineasCercanas =
+                indiceEspacial[clave];
+
+
+            let desplazamiento =
+                0;
+
+
+            // =================================
+            // COMPROBAR SUPERPOSICIÓN
+            // =================================
+
+            if (
+                lineasCercanas &&
+                lineasCercanas.size > 1
+            ) {
+
+                const lineasOrdenadas =
+                    Array.from(
+                        lineasCercanas
+                    ).sort(
+
+                        (a, b) =>
+                            parseInt(a) -
+                            parseInt(b)
+
+                    );
+
+
+                const posicion =
+                    lineasOrdenadas.indexOf(
+                        numeroLinea
+                    );
+
+
+                if (
+                    posicion !== -1
+                ) {
+
+                    const total =
+                        lineasOrdenadas.length;
+
+
+                    // =================================
+                    // DISTRIBUIR ALREDEDOR DEL CENTRO
+                    // =================================
+
+                    desplazamiento =
+                        (
+                            posicion -
+                            (
+                                total - 1
+                            ) / 2
+                        ) *
+                        SEPARACION_LINEAS_METROS;
+
+                }
+
+            }
+
+
+            // =================================
+            // SIN SUPERPOSICIÓN
+            // =================================
+
+            if (
+                desplazamiento === 0
+            ) {
+
+                coordenadas.push([
+
+                    punto.lat,
+                    punto.lon
+
+                ]);
+
+                continue;
+
+            }
+
+
+            // =================================
+            // OBTENER PERPENDICULAR
+            // =================================
+
+            const perpendicular =
+                obtenerPerpendicular(
+                    puntos,
+                    i
+                );
+
+
+            // =================================
+            // DESPLAZAR
+            // =================================
+
+            const nuevaCoordenada =
+                desplazarPunto(
+                    punto,
+                    perpendicular,
+                    desplazamiento
+                );
+
+
+            coordenadas.push(
+                nuevaCoordenada
+            );
+
+        }
+
+
+        // ====================================
+        // DIBUJAR LÍNEA
+        // ====================================
+
+        L.polyline(
+
+            coordenadas,
+
+            {
+
+                color:
+                    coloresMetrovalencia[
+                        numeroLinea
+                    ] ||
+                    linea.color ||
+                    "#666666",
+
+                weight:
+                    5,
+
+                opacity:
+                    0.85,
+
+                lineJoin:
+                    "round",
+
+                lineCap:
+                    "round"
+
+            }
+
+        ).addTo(mapa);
+
+
+        totalShapes++;
+
+    }
+
+
+    console.log(
+        "🗺️ Shapes dibujados:",
+        totalShapes
+    );
+
+}
+
+
+// ============================================
+// CARGAR DATOS GTFS
 // ============================================
 
 cargarDatosMetrovalencia()
@@ -549,95 +1134,13 @@ cargarDatosMetrovalencia()
         );
 
 
-        let totalShapes = 0;
-
-
         // ====================================
-        // RECORRER LÍNEAS
+        // DIBUJAR RED
         // ====================================
 
-        for (
-            const numeroLinea in lineas
-        ) {
-
-            const linea =
-                lineas[numeroLinea];
-
-
-            console.log(
-                "🚇 Dibujando L" +
-                numeroLinea
-            );
-
-
-            // =================================
-            // RECORRER SHAPES
-            // =================================
-
-            for (
-                const shapeId
-                of linea.shapes
-            ) {
-
-                const puntos =
-                    shapes[shapeId];
-
-
-                if (
-                    !puntos ||
-                    puntos.length < 2
-                ) {
-
-                    continue;
-
-                }
-
-
-                const coordenadas =
-                    puntos.map(
-                        punto => [
-
-                            punto.lat,
-                            punto.lon
-
-                        ]
-                    );
-
-
-                // =============================
-                // DIBUJAR
-                // =============================
-
-                L.polyline(
-
-                    coordenadas,
-
-                    {
-
-                        color:
-                            linea.color,
-
-                        weight:
-                            5,
-
-                        opacity:
-                            0.85
-
-                    }
-
-                ).addTo(mapa);
-
-
-                totalShapes++;
-
-            }
-
-        }
-
-
-        console.log(
-            "🗺️ Shapes dibujados:",
-            totalShapes
+        dibujarRed(
+            lineas,
+            shapes
         );
 
 
@@ -658,7 +1161,6 @@ cargarDatosMetrovalencia()
             const estacion
             of estaciones
         ) {
-
 
             const lat =
                 parseFloat(

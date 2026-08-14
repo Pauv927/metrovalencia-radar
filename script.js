@@ -516,6 +516,526 @@ const iconoEstacion =
 
     });
 
+// ============================================
+// ICONO DE TREN
+// ============================================
+
+const iconoTren =
+    L.divIcon({
+
+        className:
+            "icono-tren",
+
+        html: `
+            <div
+                style="
+                    font-size:22px;
+                    line-height:22px;
+                    width:28px;
+                    height:28px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+                "
+            >
+                🚇
+            </div>
+        `,
+
+        iconSize:
+            [28, 28],
+
+        iconAnchor:
+            [14, 14],
+
+        popupAnchor:
+            [0, -14]
+
+    });
+
+
+// ============================================
+// MARCADORES DE TRENES
+// ============================================
+
+const marcadoresTrenes = {};
+
+
+// ============================================
+// CONVERTIR HORA GTFS
+// ============================================
+
+function segundosHoraGTFS(hora) {
+
+    if (!hora) {
+        return null;
+    }
+
+    const partes =
+        hora.split(":");
+
+    if (partes.length !== 3) {
+        return null;
+    }
+
+    return (
+        parseInt(partes[0]) * 3600 +
+        parseInt(partes[1]) * 60 +
+        parseInt(partes[2])
+    );
+
+}
+
+
+// ============================================
+// POSICIÓN DE UN TREN
+// ============================================
+
+function calcularPosicionTren(
+    paradaAnterior,
+    paradaSiguiente,
+    tiempoActual,
+    datos
+) {
+
+    const stopAnterior =
+        datos.paradasPorId[
+            paradaAnterior.stopId
+        ];
+
+    const stopSiguiente =
+        datos.paradasPorId[
+            paradaSiguiente.stopId
+        ];
+
+
+    if (
+        !stopAnterior ||
+        !stopSiguiente
+    ) {
+
+        return null;
+
+    }
+
+
+    const salida =
+        segundosHoraGTFS(
+            paradaAnterior.salida
+        );
+
+    const llegada =
+        segundosHoraGTFS(
+            paradaSiguiente.llegada
+        );
+
+
+    if (
+        salida === null ||
+        llegada === null ||
+        llegada <= salida
+    ) {
+
+        return null;
+
+    }
+
+
+    let proporcion =
+        (
+            tiempoActual -
+            salida
+        ) /
+        (
+            llegada -
+            salida
+        );
+
+
+    proporcion =
+        Math.max(
+            0,
+            Math.min(
+                1,
+                proporcion
+            )
+        );
+
+
+    const lat1 =
+        parseFloat(
+            stopAnterior.stop_lat
+        );
+
+    const lon1 =
+        parseFloat(
+            stopAnterior.stop_lon
+        );
+
+    const lat2 =
+        parseFloat(
+            stopSiguiente.stop_lat
+        );
+
+    const lon2 =
+        parseFloat(
+            stopSiguiente.stop_lon
+        );
+
+
+    const lat =
+        lat1 +
+        (
+            lat2 - lat1
+        ) *
+        proporcion;
+
+
+    const lon =
+        lon1 +
+        (
+            lon2 - lon1
+        ) *
+        proporcion;
+
+
+    return {
+
+        lat:
+            lat,
+
+        lon:
+            lon,
+
+        anterior:
+            stopAnterior.stop_name,
+
+        siguiente:
+            stopSiguiente.stop_name,
+
+        progreso:
+            proporcion
+
+    };
+
+}
+
+// ============================================
+// ACTUALIZAR TRENES VIRTUALES
+// ============================================
+
+function actualizarTrenesVirtuales(datos) {
+
+    const ahora =
+        obtenerHoraActual();
+
+
+    const trenesActivos =
+        new Set();
+
+
+    // ========================================
+    // RECORRER TODOS LOS VIAJES
+    // ========================================
+
+    for (
+        const tripId
+        in datos.paradasPorViaje
+    ) {
+
+        const paradas =
+            datos.paradasPorViaje[
+                tripId
+            ];
+
+
+        if (
+            !paradas ||
+            paradas.length < 2
+        ) {
+
+            continue;
+
+        }
+
+
+        const trip =
+            datos.viajesPorId[
+                tripId
+            ];
+
+
+        if (!trip) {
+            continue;
+        }
+
+
+        const primera =
+            paradas[0];
+
+        const ultima =
+            paradas[
+                paradas.length - 1
+            ];
+
+
+        const inicio =
+            segundosHoraGTFS(
+                primera.salida
+            );
+
+        const fin =
+            segundosHoraGTFS(
+                ultima.llegada
+            );
+
+
+        if (
+            inicio === null ||
+            fin === null
+        ) {
+
+            continue;
+
+        }
+
+
+        // ====================================
+        // ¿ESTÁ CIRCULANDO?
+        // ====================================
+
+        if (
+            ahora < inicio ||
+            ahora > fin
+        ) {
+
+            continue;
+
+        }
+
+
+        // ====================================
+        // BUSCAR TRAMO ACTUAL
+        // ====================================
+
+        let anterior =
+            null;
+
+        let siguiente =
+            null;
+
+
+        for (
+            let i = 0;
+            i < paradas.length - 1;
+            i++
+        ) {
+
+            const salida =
+                segundosHoraGTFS(
+                    paradas[i].salida
+                );
+
+            const llegada =
+                segundosHoraGTFS(
+                    paradas[i + 1].llegada
+                );
+
+
+            if (
+                ahora >= salida &&
+                ahora <= llegada
+            ) {
+
+                anterior =
+                    paradas[i];
+
+                siguiente =
+                    paradas[i + 1];
+
+                break;
+
+            }
+
+        }
+
+
+        if (
+            !anterior ||
+            !siguiente
+        ) {
+
+            continue;
+
+        }
+
+
+        const posicion =
+            calcularPosicionTren(
+                anterior,
+                siguiente,
+                ahora,
+                datos
+            );
+
+
+        if (!posicion) {
+            continue;
+        }
+
+
+        // ====================================
+        // INFORMACIÓN DEL VIAJE
+        // ====================================
+
+        const route =
+            datos.rutasPorId[
+                trip.route_id
+            ];
+
+
+        if (!route) {
+            continue;
+        }
+
+
+        const linea =
+            route.route_short_name;
+
+
+        const destino =
+            trip.trip_headsign;
+
+
+        trenesActivos.add(
+            tripId
+        );
+
+
+        // ====================================
+        // CREAR O ACTUALIZAR MARCADOR
+        // ====================================
+
+        if (
+            !marcadoresTrenes[
+                tripId
+            ]
+        ) {
+
+            marcadoresTrenes[
+                tripId
+            ] = L.marker(
+
+                [
+                    posicion.lat,
+                    posicion.lon
+                ],
+
+                {
+
+                    icon:
+                        iconoTren,
+
+                    zIndexOffset:
+                        1000
+
+                }
+
+            ).addTo(mapa);
+
+        }
+
+
+        const marcador =
+            marcadoresTrenes[
+                tripId
+            ];
+
+
+        marcador.setLatLng([
+
+            posicion.lat,
+            posicion.lon
+
+        ]);
+
+
+        marcador.bindPopup(`
+
+            <div
+                style="
+                    min-width:190px;
+                "
+            >
+
+                <h3
+                    style="
+                        margin:0 0 8px 0;
+                    "
+                >
+                    🚇 Línea ${linea}
+                </h3>
+
+                <strong>
+                    Destino:
+                </strong>
+
+                ${destino}
+
+                <br><br>
+
+                <strong>
+                    Entre:
+                </strong>
+
+                ${posicion.anterior}
+
+                <br>
+
+                <strong>
+                    y:
+                </strong>
+
+                ${posicion.siguiente}
+
+            </div>
+
+        `);
+
+    }
+
+
+    // ========================================
+    // ELIMINAR TRENES QUE YA NO CIRCULAN
+    // ========================================
+
+    for (
+        const tripId
+        in marcadoresTrenes
+    ) {
+
+        if (
+            !trenesActivos.has(
+                tripId
+            )
+        ) {
+
+            mapa.removeLayer(
+                marcadoresTrenes[
+                    tripId
+                ]
+            );
+
+            delete marcadoresTrenes[
+                tripId
+            ];
+
+        }
+
+    }
+
+}
 
 // ============================================
 // CONFIGURACIÓN DE LÍNEAS SUPERPUESTAS
@@ -1340,6 +1860,35 @@ cargarDatosMetrovalencia()
             estaciones.length
         );
 
+// ========================================
+// INICIAR TRENES VIRTUALES
+// ========================================
+
+console.log(
+    "🚇 Iniciando radar virtual..."
+);
+
+
+actualizarTrenesVirtuales(
+    datos
+);
+
+
+// Actualizar cada segundo
+
+setInterval(
+
+    () => {
+
+        actualizarTrenesVirtuales(
+            datos
+        );
+
+    },
+
+    1000
+
+);
 
         // ====================================
         // ESTADO

@@ -160,6 +160,20 @@ async function cargarDatosMetrovalencia() {
     const stops =
         analizarCSV(textoStops);
 
+// ========================================
+// ÍNDICE DE ESTACIONES
+// ========================================
+
+const paradasPorId = {};
+
+for (const stop of stops) {
+
+    paradasPorId[
+        stop.stop_id
+    ] = stop;
+
+}
+
     const stopTimes =
         analizarCSV(textoStopTimes);
 
@@ -705,7 +719,74 @@ async function cargarDatosMetrovalencia() {
         "🕐 Horarios por estación creados:",
         horariosPorEstacion
     );
+// ========================================
+// CREAR HORARIOS POR VIAJE
+// ========================================
 
+console.log(
+    "🚆 Preparando recorridos de los trenes..."
+);
+
+const paradasPorViaje = {};
+
+for (const stopTime of stopTimes) {
+
+    const tripId =
+        stopTime.trip_id;
+
+    if (!paradasPorViaje[tripId]) {
+
+        paradasPorViaje[tripId] = [];
+
+    }
+
+    paradasPorViaje[tripId].push({
+
+        stopId:
+            stopTime.stop_id,
+
+        llegada:
+            stopTime.arrival_time,
+
+        salida:
+            stopTime.departure_time,
+
+        secuencia:
+            parseInt(
+                stopTime.stop_sequence
+            )
+
+    });
+
+}
+
+
+// ========================================
+// ORDENAR PARADAS DE CADA VIAJE
+// ========================================
+
+for (
+    const tripId
+    in paradasPorViaje
+) {
+
+    paradasPorViaje[tripId].sort(
+
+        (a, b) =>
+            a.secuencia -
+            b.secuencia
+
+    );
+
+}
+
+
+console.log(
+    "🚆 Viajes preparados:",
+    Object.keys(
+        paradasPorViaje
+    ).length
+);
 
     // ========================================
     // MOSTRAR INFORMACIÓN
@@ -727,26 +808,32 @@ async function cargarDatosMetrovalencia() {
     // RESULTADO FINAL
     // ========================================
 
-    return {
+  return {
 
-        lineas:
-            lineas,
+    lineas:
+        lineas,
 
-        shapes:
-            shapesPorId,
+    shapes:
+        shapesPorId,
 
-        stops:
-            stops,
+    stops:
+        stops,
 
-        estacionesLineas:
-            estacionesLineas,
+    paradasPorId:
+        paradasPorId,
 
-        horariosPorEstacion:
-            horariosPorEstacion,
+    estacionesLineas:
+        estacionesLineas,
 
-        colores:
-            coloresMetrovalencia
+    horariosPorEstacion:
+        horariosPorEstacion,
 
-    };
+    paradasPorViaje:
+        paradasPorViaje,
+
+    colores:
+        coloresMetrovalencia
+
+};
 
 }

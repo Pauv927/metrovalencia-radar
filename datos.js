@@ -179,20 +179,20 @@ async function cargarDatosMetrovalencia() {
     // COLORES OFICIALES DE LAS LÍNEAS
     // ========================================
 
-    const coloresMetrovalencia = {
+   const coloresMetrovalencia = {
 
-        "1":  "#FEC601",
-        "2":  "#CE142B",
-        "3":  "#DD052C",
-        "4":  "#F28D01",
-        "5":  "#8884BF",
-        "6":  "#F28D01",
-        "7":  "#82CEE6",
-        "8":  "#3EB0CB",
-        "9":  "#B8804F",
-        "10": "#B7DD79"
+    "1": "#FEC601",
+    "2": "#FEC601",
+    "3": "#E60096",
+    "4": "#008C95",
+    "5": "#E60096",
+    "6": "#008C95",
+    "7": "#E60096",
+    "8": "#82CEE6",
+    "9": "#B8804F",
+    "10": "#E60096"
 
-    };
+};
 
 
     // ========================================
@@ -229,30 +229,25 @@ async function cargarDatosMetrovalencia() {
         }
 
 
-        if (!lineas[numeroLinea]) {
+       if (!lineas[numeroLinea]) {
 
-            lineas[numeroLinea] = {
+    lineas[numeroLinea] = {
 
-                nombre:
-                    numeroLinea,
+        nombre:
+            numeroLinea,
 
-                // IMPORTANTE:
-                // No usamos route.route_color
-                // porque una misma línea puede
-                // tener colores diferentes en GTFS.
+        color:
+            route.route_color
+                ? "#" + route.route_color
+                : "#666666",
 
-                color:
-                    coloresMetrovalencia[
-                        numeroLinea
-                    ] || "#666666",
+        routeIds: [],
 
-                routeIds: [],
+        shapes: []
 
-                shapes: []
+    };
 
-            };
-
-        }
+}
 
 
         if (

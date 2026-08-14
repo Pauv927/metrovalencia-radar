@@ -147,7 +147,46 @@ cargarDatosMetrovalencia()
             "🗺️ Shapes dibujados:",
             totalShapes
         );
+// ====================================
+// DIBUJAR ESTACIONES
+// ====================================
 
+console.log("🚉 Dibujando estaciones...");
+
+const estaciones = datos.stops;
+
+for (const estacion of estaciones) {
+
+    const lat = parseFloat(estacion.stop_lat);
+    const lon = parseFloat(estacion.stop_lon);
+
+    if (
+        isNaN(lat) ||
+        isNaN(lon)
+    ) {
+        continue;
+    }
+
+    L.circleMarker(
+        [lat, lon],
+        {
+            radius: 5,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: "#181818",
+            fillOpacity: 1
+        }
+    )
+    .addTo(mapa)
+    .bindTooltip(
+        estacion.stop_name
+    );
+}
+
+console.log(
+    "🚉 Estaciones dibujadas:",
+    estaciones.length
+);
 
         document
             .getElementById("estado")

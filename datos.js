@@ -229,7 +229,7 @@ async function cargarDatosMetrovalencia() {
         }
 
 
-       if (!lineas[numeroLinea]) {
+     if (!lineas[numeroLinea]) {
 
     lineas[numeroLinea] = {
 
@@ -237,9 +237,8 @@ async function cargarDatosMetrovalencia() {
             numeroLinea,
 
         color:
-            route.route_color
-                ? "#" + route.route_color
-                : "#666666",
+            coloresMetrovalencia[numeroLinea]
+            || "#666666",
 
         routeIds: [],
 

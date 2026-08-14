@@ -1,0 +1,38 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+}
+
+header {
+    height: 60px;
+    background: #181818;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+
+    position: relative;
+    z-index: 1000;
+}
+
+h1 {
+    margin: 0;
+    font-size: 22px;
+}
+
+#estado {
+    color: #00ff88;
+}
+
+#mapa {
+    height: calc(100vh - 60px);
+    width: 100%;
+}

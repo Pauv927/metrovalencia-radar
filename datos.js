@@ -522,6 +522,161 @@ async function cargarDatosMetrovalencia() {
         "🔗 Relación estaciones → líneas creada"
     );
 
+// ========================================
+// CREAR HORARIOS POR ESTACIÓN
+// ========================================
+
+console.log(
+    "🕐 Calculando horarios por estación..."
+);
+
+
+// ========================================
+// CONVERTIR HH:MM:SS A SEGUNDOS
+// ========================================
+
+function convertirHora(hora) {
+
+    const partes =
+        hora.split(":");
+
+
+    return (
+
+        parseInt(partes[0]) * 3600 +
+
+        parseInt(partes[1]) * 60 +
+
+        parseInt(partes[2])
+
+    );
+
+}
+
+
+const horariosPorEstacion = {};
+
+
+// ========================================
+// RECORRER STOP_TIMES
+// ========================================
+
+for (const stopTime of stopTimes) {
+
+    const stopId =
+        stopTime.stop_id;
+
+    const tripId =
+        stopTime.trip_id;
+
+
+    const trip =
+        viajesPorId[tripId];
+
+
+    if (!trip) {
+        continue;
+    }
+
+
+    const route =
+        rutasPorId[
+            trip.route_id
+        ];
+
+
+    if (!route) {
+        continue;
+    }
+
+
+    const numeroLinea =
+        route.route_short_name;
+
+
+    if (!numeroLinea) {
+        continue;
+    }
+
+
+    if (
+        !horariosPorEstacion[
+            stopId
+        ]
+    ) {
+
+        horariosPorEstacion[
+            stopId
+        ] = [];
+
+    }
+
+
+    horariosPorEstacion[
+        stopId
+    ].push({
+
+        tripId:
+            tripId,
+
+        linea:
+            numeroLinea,
+
+        destino:
+            trip.trip_headsign,
+
+        llegada:
+            stopTime.arrival_time,
+
+        salida:
+            stopTime.departure_time,
+
+        secuencia:
+            parseInt(
+                stopTime.stop_sequence
+            )
+
+    });
+
+}
+
+
+// ========================================
+// ORDENAR HORARIOS
+// ========================================
+
+for (
+    const stopId
+    in horariosPorEstacion
+) {
+
+    horariosPorEstacion[
+        stopId
+    ].sort(
+
+        (a, b) => {
+
+            return (
+                convertirHora(
+                    a.salida
+                ) -
+                convertirHora(
+                    b.salida
+                )
+            );
+
+        }
+
+    );
+
+}
+
+
+console.log(
+    "🕐 Horarios por estación creados:",
+    horariosPorEstacion
+);
+
 
     // ========================================
     // MOSTRAR INFORMACIÓN
@@ -543,20 +698,23 @@ async function cargarDatosMetrovalencia() {
     // RESULTADO FINAL
     // ========================================
 
-    return {
+   return {
 
-        lineas:
-            lineas,
+    lineas:
+        lineas,
 
-        shapes:
-            shapesPorId,
+    shapes:
+        shapesPorId,
 
-        stops:
-            stops,
+    stops:
+        stops,
 
-        estacionesLineas:
-            estacionesLineas
+    estacionesLineas:
+        estacionesLineas,
 
-    };
+    horariosPorEstacion:
+        horariosPorEstacion
+
+};
 
 }

@@ -76,6 +76,362 @@ function analizarCSV(texto) {
 
 
 // ============================================
+// FECHA ACTUAL EN ESPAÑA
+// ============================================
+
+function obtenerFechaHoy() {
+
+    const ahora =
+        new Date();
+
+
+    const año =
+        ahora.getFullYear();
+
+    const mes =
+        String(
+            ahora.getMonth() + 1
+        ).padStart(2, "0");
+
+    const día =
+        String(
+            ahora.getDate()
+        ).padStart(2, "0");
+
+
+    return (
+        año +
+        mes +
+        día
+    );
+
+}
+
+
+// ============================================
+// DÍA DE LA SEMANA
+// ============================================
+
+function obtenerDiaSemana() {
+
+    const ahora =
+        new Date();
+
+
+    // JavaScript:
+    // 0 = domingo
+    // 1 = lunes
+    // ...
+    // 6 = sábado
+
+    return ahora.getDay();
+
+}
+
+
+// ============================================
+// COMPROBAR SERVICIOS ACTIVOS HOY
+// ============================================
+
+function calcularServiciosActivosHoy(
+    calendar,
+    calendarDates
+) {
+
+    const fechaHoy =
+        obtenerFechaHoy();
+
+
+    const diaSemana =
+        obtenerDiaSemana();
+
+
+    const camposDias = {
+
+        0: "sunday",
+        1: "monday",
+        2: "tuesday",
+        3: "wednesday",
+        4: "thursday",
+        5: "friday",
+        6: "saturday"
+
+    };
+
+
+    const campoDia =
+        camposDias[diaSemana];
+
+
+    const serviciosActivos =
+        new Set();
+
+
+    // ========================================
+    // CALENDAR.TXT
+    // ========================================
+
+    for (
+        const servicio
+        of calendar
+    ) {
+
+        const inicio =
+            parseInt(
+                servicio.start_date
+            );
+
+        const fin =
+            parseInt(
+                servicio.end_date
+            );
+
+        const hoy =
+            parseInt(
+                fechaHoy
+            );
+
+
+        if (
+            hoy < inicio ||
+            hoy > fin
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            servicio[campoDia] === "1"
+        ) {
+
+            serviciosActivos.add(
+                servicio.service_id
+            );
+
+        }
+
+    }
+
+
+    // ========================================
+    // CALENDAR_DATES.TXT
+    // ========================================
+
+    for (
+        const excepcion
+        of calendarDates
+    ) {
+
+        if (
+            excepcion.date !==
+            fechaHoy
+        ) {
+
+            continue;
+
+        }
+
+
+        const serviceId =
+            excepcion.service_id;
+
+
+        // 1 = servicio añadido
+
+        if (
+            excepcion.exception_type === "1"
+        ) {
+
+            serviciosActivos.add(
+                serviceId
+            );
+
+        }
+
+
+        // 2 = servicio eliminado
+
+        if (
+            excepcion.exception_type === "2"
+        ) {
+
+            serviciosActivos.delete(
+                serviceId
+            );
+
+        }
+
+    }
+
+
+    console.log(
+        "📅 Fecha actual:",
+        fechaHoy
+    );
+
+    console.log(
+        "📅 Servicios activos hoy:",
+        serviciosActivos.size
+    );
+
+
+    return serviciosActivos;
+
+}
+
+
+// ============================================
+// SERVICIOS AFECTADOS POR OBRAS
+// ============================================
+
+function filtrarViajesPorObras(
+    trips,
+    stopTimes,
+    stops,
+    rutasPorId
+) {
+
+    // Obras Alameda - Marítim:
+    // 25/06/2026 - 30/08/2026
+    //
+    // Afectan al metro de L5 y L7.
+    //
+    // Estaciones cerradas:
+    // Aragó
+    // Amistat
+    // Ayora
+    // Marítim
+
+    const cerradas =
+        new Set([
+
+            "Aragó",
+            "Amistat",
+            "Ayora",
+            "Marítim"
+
+        ]);
+
+
+    const paradaPorId = {};
+
+
+    for (
+        const stop
+        of stops
+    ) {
+
+        paradaPorId[
+            stop.stop_id
+        ] =
+            stop;
+
+    }
+
+
+    // ========================================
+    // OBTENER TRIPS DE L5/L7
+    // QUE PASAN POR ESTACIONES CERRADAS
+    // ========================================
+
+    const tripsAEliminar =
+        new Set();
+
+
+    for (
+        const stopTime
+        of stopTimes
+    ) {
+
+        const trip =
+            trips.find(
+                t =>
+                    t.trip_id ===
+                    stopTime.trip_id
+            );
+
+
+        if (!trip) {
+            continue;
+        }
+
+
+        const route =
+            rutasPorId[
+                trip.route_id
+            ];
+
+
+        if (!route) {
+            continue;
+        }
+
+
+        const linea =
+            route.route_short_name;
+
+
+        if (
+            linea !== "5" &&
+            linea !== "7"
+        ) {
+
+            continue;
+
+        }
+
+
+        const stop =
+            paradaPorId[
+                stopTime.stop_id
+            ];
+
+
+        if (!stop) {
+            continue;
+        }
+
+
+        if (
+            cerradas.has(
+                stop.stop_name
+            )
+        ) {
+
+            tripsAEliminar.add(
+                trip.trip_id
+            );
+
+        }
+
+    }
+
+
+    const resultado =
+        trips.filter(
+
+            trip =>
+                !tripsAEliminar.has(
+                    trip.trip_id
+                )
+
+        );
+
+
+    console.log(
+        "🚧 Viajes eliminados por obras:",
+        tripsAEliminar.size
+    );
+
+
+    return resultado;
+
+}
+
+
+// ============================================
 // CARGAR INFORMACIÓN DE METROVALENCIA
 // ============================================
 
@@ -96,7 +452,9 @@ async function cargarDatosMetrovalencia() {
         textoTrips,
         textoShapes,
         textoStops,
-        textoStopTimes
+        textoStopTimes,
+        textoCalendar,
+        textoCalendarDates
 
     ] = await Promise.all([
 
@@ -118,6 +476,14 @@ async function cargarDatosMetrovalencia() {
 
         cargarArchivoGTFS(
             "stop_times.txt"
+        ),
+
+        cargarArchivoGTFS(
+            "calendar.txt"
+        ),
+
+        cargarArchivoGTFS(
+            "calendar_dates.txt"
         )
 
     ]);
@@ -143,6 +509,14 @@ async function cargarDatosMetrovalencia() {
         "✅ stop_times.txt cargado"
     );
 
+    console.log(
+        "✅ calendar.txt cargado"
+    );
+
+    console.log(
+        "✅ calendar_dates.txt cargado"
+    );
+
 
     // ========================================
     // ANALIZAR CSV
@@ -151,7 +525,7 @@ async function cargarDatosMetrovalencia() {
     const routes =
         analizarCSV(textoRoutes);
 
-    const trips =
+    let trips =
         analizarCSV(textoTrips);
 
     const shapes =
@@ -160,22 +534,14 @@ async function cargarDatosMetrovalencia() {
     const stops =
         analizarCSV(textoStops);
 
-// ========================================
-// ÍNDICE DE ESTACIONES
-// ========================================
-
-const paradasPorId = {};
-
-for (const stop of stops) {
-
-    paradasPorId[
-        stop.stop_id
-    ] = stop;
-
-}
-
-    const stopTimes =
+    let stopTimes =
         analizarCSV(textoStopTimes);
+
+    const calendar =
+        analizarCSV(textoCalendar);
+
+    const calendarDates =
+        analizarCSV(textoCalendarDates);
 
 
     console.log(
@@ -190,23 +556,61 @@ for (const stop of stops) {
 
 
     // ========================================
-    // COLORES OFICIALES DE LAS LÍNEAS
+    // COLORES DE LAS LÍNEAS
     // ========================================
 
-   const coloresMetrovalencia = {
+    const coloresMetrovalencia = {
 
-    "1":  "#FEC601",
-    "2":  "#E60096",
-    "3":  "#DD052C",
-    "4":  "#014A99",
-    "5":  "#008F71",
-    "6":  "#8884BF",
-    "7":  "#F28D01",
-    "8":  "#3EB0CB",
-    "9":  "#B8804F",
-    "10": "#B7DD79"
+        "1":  "#FEC601",
+        "2":  "#E60096",
+        "3":  "#DD052C",
+        "4":  "#014A99",
+        "5":  "#008F71",
+        "6":  "#8884BF",
+        "7":  "#F28D01",
+        "8":  "#3EB0CB",
+        "9":  "#B8804F",
+        "10": "#B7DD79"
 
-};
+    };
+
+
+    // ========================================
+    // SERVICIOS ACTIVOS HOY
+    // ========================================
+
+    const serviciosActivos =
+        calcularServiciosActivosHoy(
+            calendar,
+            calendarDates
+        );
+
+
+    // ========================================
+    // FILTRAR TRIPS POR CALENDARIO
+    // ========================================
+
+    const tripsOriginales =
+        trips.length;
+
+
+    trips =
+        trips.filter(
+
+            trip =>
+                serviciosActivos.has(
+                    trip.service_id
+                )
+
+        );
+
+
+    console.log(
+        "📅 Viajes por calendario:",
+        tripsOriginales,
+        "→",
+        trips.length
+    );
 
 
     // ========================================
@@ -216,13 +620,69 @@ for (const stop of stops) {
     const rutasPorId = {};
 
 
-    for (const route of routes) {
+    for (
+        const route
+        of routes
+    ) {
 
         rutasPorId[
             route.route_id
-        ] = route;
+        ] =
+            route;
 
     }
+
+
+    // ========================================
+    // FILTRAR VIAJES AFECTADOS POR OBRAS
+    // ========================================
+
+    trips =
+        filtrarViajesPorObras(
+            trips,
+            stopTimes,
+            stops,
+            rutasPorId
+        );
+
+
+    const tripsValidos =
+        new Set(
+
+            trips.map(
+                trip =>
+                    trip.trip_id
+            )
+
+        );
+
+
+    // ========================================
+    // FILTRAR STOP_TIMES
+    // PARA QUEDARNOS SOLO
+    // CON VIAJES VÁLIDOS
+    // ========================================
+
+    stopTimes =
+        stopTimes.filter(
+
+            stopTime =>
+                tripsValidos.has(
+                    stopTime.trip_id
+                )
+
+        );
+
+
+    console.log(
+        "🚆 Viajes válidos finales:",
+        trips.length
+    );
+
+    console.log(
+        "⏱️ Stop_times válidos:",
+        stopTimes.length
+    );
 
 
     // ========================================
@@ -232,7 +692,10 @@ for (const stop of stops) {
     const lineas = {};
 
 
-    for (const route of routes) {
+    for (
+        const route
+        of routes
+    ) {
 
         const numeroLinea =
             route.route_short_name;
@@ -243,24 +706,26 @@ for (const stop of stops) {
         }
 
 
-     if (!lineas[numeroLinea]) {
+        if (!lineas[numeroLinea]) {
 
-    lineas[numeroLinea] = {
+            lineas[numeroLinea] = {
 
-        nombre:
-            numeroLinea,
+                nombre:
+                    numeroLinea,
 
-        color:
-            coloresMetrovalencia[numeroLinea]
-            || "#666666",
+                color:
+                    coloresMetrovalencia[
+                        numeroLinea
+                    ] ||
+                    "#666666",
 
-        routeIds: [],
+                routeIds: [],
 
-        shapes: []
+                shapes: []
 
-    };
+            };
 
-}
+        }
 
 
         if (
@@ -283,17 +748,41 @@ for (const stop of stops) {
 
 
     // ========================================
-    // CREAR ÍNDICE DE TRIPS
+    // ÍNDICE DE VIAJES
     // ========================================
 
     const viajesPorId = {};
 
 
-    for (const trip of trips) {
+    for (
+        const trip
+        of trips
+    ) {
 
         viajesPorId[
             trip.trip_id
-        ] = trip;
+        ] =
+            trip;
+
+    }
+
+
+    // ========================================
+    // ÍNDICE DE ESTACIONES
+    // ========================================
+
+    const paradasPorId = {};
+
+
+    for (
+        const stop
+        of stops
+    ) {
+
+        paradasPorId[
+            stop.stop_id
+        ] =
+            stop;
 
     }
 
@@ -307,11 +796,10 @@ for (const stop of stops) {
     );
 
 
-    // ========================================
-    // EVITAR SHAPES DUPLICADOS
-    // ========================================
-
-    for (const trip of trips) {
+    for (
+        const trip
+        of trips
+    ) {
 
         const route =
             rutasPorId[
@@ -342,19 +830,19 @@ for (const stop of stops) {
         }
 
 
-        // ====================================
-        // AÑADIR SOLO UNA VEZ CADA SHAPE
-        // ====================================
-
         if (
             !lineas[numeroLinea]
                 .shapes
-                .includes(shapeId)
+                .includes(
+                    shapeId
+                )
         ) {
 
             lineas[numeroLinea]
                 .shapes
-                .push(shapeId);
+                .push(
+                    shapeId
+                );
 
         }
 
@@ -368,7 +856,10 @@ for (const stop of stops) {
     const shapesPorId = {};
 
 
-    for (const punto of shapes) {
+    for (
+        const punto
+        of shapes
+    ) {
 
         const id =
             punto.shape_id;
@@ -408,7 +899,8 @@ for (const stop of stops) {
     // ========================================
 
     for (
-        const id in shapesPorId
+        const id
+        in shapesPorId
     ) {
 
         shapesPorId[id].sort(
@@ -432,11 +924,10 @@ for (const stop of stops) {
     const estacionesLineas = {};
 
 
-    // ========================================
-    // CREAR TODAS LAS ESTACIONES
-    // ========================================
-
-    for (const stop of stops) {
+    for (
+        const stop
+        of stops
+    ) {
 
         estacionesLineas[
             stop.stop_id
@@ -444,10 +935,6 @@ for (const stop of stops) {
 
     }
 
-
-    // ========================================
-    // RECORRER STOP_TIMES
-    // ========================================
 
     for (
         const stopTime
@@ -461,22 +948,16 @@ for (const stop of stops) {
             stopTime.trip_id;
 
 
-        // ====================================
-        // BUSCAR VIAJE
-        // ====================================
-
         const trip =
-            viajesPorId[tripId];
+            viajesPorId[
+                tripId
+            ];
 
 
         if (!trip) {
             continue;
         }
 
-
-        // ====================================
-        // BUSCAR RUTA
-        // ====================================
 
         const route =
             rutasPorId[
@@ -498,10 +979,6 @@ for (const stop of stops) {
         }
 
 
-        // ====================================
-        // COMPROBAR ESTACIÓN
-        // ====================================
-
         if (
             !estacionesLineas[
                 stopId
@@ -514,10 +991,6 @@ for (const stop of stops) {
 
         }
 
-
-        // ====================================
-        // AÑADIR LÍNEA
-        // ====================================
 
         if (
             !estacionesLineas[
@@ -537,10 +1010,6 @@ for (const stop of stops) {
 
     }
 
-
-    // ========================================
-    // ORDENAR LÍNEAS DE CADA ESTACIÓN
-    // ========================================
 
     for (
         const stopId
@@ -574,11 +1043,12 @@ for (const stop of stops) {
     );
 
 
-    // ========================================
-    // CONVERTIR HH:MM:SS A SEGUNDOS
-    // ========================================
-
     function convertirHora(hora) {
+
+        if (!hora) {
+            return 0;
+        }
+
 
         const partes =
             hora.split(":");
@@ -586,9 +1056,11 @@ for (const stop of stops) {
 
         return (
 
-            parseInt(partes[0]) * 3600 +
+            parseInt(partes[0]) *
+            3600 +
 
-            parseInt(partes[1]) * 60 +
+            parseInt(partes[1]) *
+            60 +
 
             parseInt(partes[2])
 
@@ -600,11 +1072,10 @@ for (const stop of stops) {
     const horariosPorEstacion = {};
 
 
-    // ========================================
-    // RECORRER STOP_TIMES
-    // ========================================
-
-    for (const stopTime of stopTimes) {
+    for (
+        const stopTime
+        of stopTimes
+    ) {
 
         const stopId =
             stopTime.stop_id;
@@ -614,7 +1085,9 @@ for (const stop of stops) {
 
 
         const trip =
-            viajesPorId[tripId];
+            viajesPorId[
+                tripId
+            ];
 
 
         if (!trip) {
@@ -697,18 +1170,13 @@ for (const stop of stops) {
             stopId
         ].sort(
 
-            (a, b) => {
-
-                return (
-                    convertirHora(
-                        a.salida
-                    ) -
-                    convertirHora(
-                        b.salida
-                    )
-                );
-
-            }
+            (a, b) =>
+                convertirHora(
+                    a.salida
+                ) -
+                convertirHora(
+                    b.salida
+                )
 
         );
 
@@ -719,88 +1187,92 @@ for (const stop of stops) {
         "🕐 Horarios por estación creados:",
         horariosPorEstacion
     );
-// ========================================
-// CREAR HORARIOS POR VIAJE
-// ========================================
 
-console.log(
-    "🚆 Preparando recorridos de los trenes..."
-);
 
-const paradasPorViaje = {};
+    // ========================================
+    // CREAR HORARIOS POR VIAJE
+    // ========================================
 
-for (const stopTime of stopTimes) {
+    console.log(
+        "🚆 Preparando recorridos de los trenes..."
+    );
 
-    const tripId =
-        stopTime.trip_id;
 
-    if (!paradasPorViaje[tripId]) {
+    const paradasPorViaje = {};
 
-        paradasPorViaje[tripId] = [];
+
+    for (
+        const stopTime
+        of stopTimes
+    ) {
+
+        const tripId =
+            stopTime.trip_id;
+
+
+        if (
+            !paradasPorViaje[
+                tripId
+            ]
+        ) {
+
+            paradasPorViaje[
+                tripId
+            ] = [];
+
+        }
+
+
+        paradasPorViaje[
+            tripId
+        ].push({
+
+            stopId:
+                stopTime.stop_id,
+
+            llegada:
+                stopTime.arrival_time,
+
+            salida:
+                stopTime.departure_time,
+
+            secuencia:
+                parseInt(
+                    stopTime.stop_sequence
+                )
+
+        });
 
     }
 
-    paradasPorViaje[tripId].push({
-
-        stopId:
-            stopTime.stop_id,
-
-        llegada:
-            stopTime.arrival_time,
-
-        salida:
-            stopTime.departure_time,
-
-        secuencia:
-            parseInt(
-                stopTime.stop_sequence
-            )
-
-    });
-
-}
-
-
-// ========================================
-// ORDENAR PARADAS DE CADA VIAJE
-// ========================================
-
-for (
-    const tripId
-    in paradasPorViaje
-) {
-
-    paradasPorViaje[tripId].sort(
-
-        (a, b) =>
-            a.secuencia -
-            b.secuencia
-
-    );
-
-}
-
-
-console.log(
-    "🚆 Viajes preparados:",
-    Object.keys(
-        paradasPorViaje
-    ).length
-);
 
     // ========================================
-    // MOSTRAR INFORMACIÓN
+    // ORDENAR PARADAS DE CADA VIAJE
     // ========================================
 
-    console.log(
-        "🚇 Líneas encontradas:",
-        lineas
-    );
+    for (
+        const tripId
+        in paradasPorViaje
+    ) {
+
+        paradasPorViaje[
+            tripId
+        ].sort(
+
+            (a, b) =>
+                a.secuencia -
+                b.secuencia
+
+        );
+
+    }
 
 
     console.log(
-        "🚉 Estaciones con líneas:",
-        estacionesLineas
+        "🚆 Viajes preparados:",
+        Object.keys(
+            paradasPorViaje
+        ).length
     );
 
 
@@ -808,38 +1280,38 @@ console.log(
     // RESULTADO FINAL
     // ========================================
 
-  return {
+    return {
 
-    lineas:
-        lineas,
+        lineas:
+            lineas,
 
-    shapes:
-        shapesPorId,
+        shapes:
+            shapesPorId,
 
-    stops:
-        stops,
+        stops:
+            stops,
 
-    paradasPorId:
-        paradasPorId,
+        paradasPorId:
+            paradasPorId,
 
-    rutasPorId:
-        rutasPorId,
+        rutasPorId:
+            rutasPorId,
 
-    viajesPorId:
-        viajesPorId,
+        viajesPorId:
+            viajesPorId,
 
-    estacionesLineas:
-        estacionesLineas,
+        estacionesLineas:
+            estacionesLineas,
 
-    horariosPorEstacion:
-        horariosPorEstacion,
+        horariosPorEstacion:
+            horariosPorEstacion,
 
-    paradasPorViaje:
-        paradasPorViaje,
+        paradasPorViaje:
+            paradasPorViaje,
 
-    colores:
-        coloresMetrovalencia
+        colores:
+            coloresMetrovalencia
 
-};
+    };
 
 }
